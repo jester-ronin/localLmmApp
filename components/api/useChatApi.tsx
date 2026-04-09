@@ -15,7 +15,7 @@ export const useChatApi = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: "nemotron",
+                    model: "nvidia/nemotron-3-nano-4b",
                     messages: [{ role: "user", content: prompt }]
                 })
             });
