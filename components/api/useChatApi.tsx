@@ -2,12 +2,26 @@
 import { useState } from "react";
 import extractAnswer from "../../utils/extractAnswer";
 
+type Message = {
+    role: "user" | "assistant";
+    content: string;
+};
+
 export const useChatApi = () => {
     const [apiResponse, setApiResponse] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [messages, setMessages] = useState<Message[]>([]);
 
     const sendPrompt = async (prompt: string) => {
         if (!prompt.trim()) return;
+
+        const newUserMessage: Message = {
+            role: "user",
+            content: prompt
+        };
+
+        const updatedMessages = [...messages, newUserMessage];
+        setMessages(updatedMessages);
 
         setIsLoading(true);
         try {
@@ -16,7 +30,7 @@ export const useChatApi = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: "nvidia/nemotron-3-nano-4b",
-                    messages: [{ role: "user", content: prompt }]
+                    messages: updatedMessages
                 })
             });
 
@@ -24,7 +38,13 @@ export const useChatApi = () => {
 
             const data = await response.json();
             const content = data.choices[0].message.content;
+
             setApiResponse(extractAnswer(content));
+            
+            setMessages(prev => [
+                ...prev,
+                { role: "assistant", content }
+            ]);
 
         } catch (error) {
             console.error(error);

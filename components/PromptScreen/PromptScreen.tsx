@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
         borderWidth: 0.5,
         paddingHorizontal: 10,
         marginBottom: 10,
-        backgroundColor: "white",
+        backgroundColor: "#EDE8D0",
         borderRadius: 10
     },
     buttonView: {
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         borderWidth: 4,
         borderStyle: 'dashed',
-        backgroundColor: "white",
+        backgroundColor: "#EDE8D0",
     },
     button: {
         backgroundColor: '#72b6ff',

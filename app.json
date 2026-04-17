@@ -10,7 +10,7 @@
     },
     "expo": {
       "name": "My LMM App",
-      "slug": "my-app",
+      "slug": "My LMM App",
       "icon": "./utils/red-sky.jpg"
     }
   }
