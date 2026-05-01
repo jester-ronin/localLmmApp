@@ -3,6 +3,7 @@ import { TextInput, View, Text, StyleSheet, ActivityIndicator, Image, TouchableO
 import * as ImagePicker from "expo-image-picker";
 import { useChatApi } from "../api/useChatApi";
 import { imageUrl } from "../../utils/imageURL";
+import { compressImageToBase64 } from "../../utils/compressImage";
 
 
 const PromptScreen: React.FC = () => {
@@ -24,7 +25,6 @@ const PromptScreen: React.FC = () => {
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ["images"],
-            base64: true,
             allowsMultipleSelection: false,
         });
 
@@ -33,12 +33,13 @@ const PromptScreen: React.FC = () => {
         }
 
         const asset = result.assets[0];
+        const compressedImage = await compressImageToBase64(asset.uri);
 
-        if (!asset.base64) {
+        if (!compressedImage) {
             return;
         }
 
-        setSelectedImage(`data:image/jpeg;base64,${asset.base64.trim()}`);
+        setSelectedImage(compressedImage);
     }
 
     return (
