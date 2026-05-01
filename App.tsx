@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { TextInput, View, Text, StyleSheet, Button, Image } from "react-native";
 import PromptScreen from "./components/PromptScreen/PromptScreen";
 import { useAutoGradientColor } from "./components/GetGradientColor/useAutoGradientColor";
 import { imageUrl } from "./utils/imageURL";

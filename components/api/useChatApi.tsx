@@ -3,9 +3,21 @@ import { useState } from "react";
 import { LLM_CHAT_COMPLETIONS_URL, LLM_MODEL } from "../../utils/apiConfig";
 import extractAnswer from "../../utils/extractAnswer";
 
+type TextContent = {
+    type: "text";
+    text: string;
+};
+
+type ImageContent = {
+    type: "image_url";
+    image_url: {
+        url: string;
+    };
+};
+
 type Message = {
     role: "user" | "assistant";
-    content: string;
+    content: string | Array<TextContent | ImageContent>;
 };
 
 type ChatCompletionResponse = {
@@ -33,15 +45,35 @@ export const useChatApi = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [messages, setMessages] = useState<Message[]>([]);
 
-    const sendPrompt = async (prompt: string) => {
-        if (!prompt.trim() || isLoading) return false;
+    const sendPrompt = async (prompt: string, image: string | null = null) => {
+        const promptText = prompt.trim();
+
+        if ((!promptText && !image) || isLoading) return false;
+
+        const imageContent: ImageContent | null = image
+            ? {
+                type: "image_url",
+                image_url: {
+                    url: image
+                }
+            }
+            : null;
 
         const newUserMessage: Message = {
             role: "user",
-            content: prompt
+            content: imageContent
+                ? [
+                    ...(promptText ? [{ type: "text", text: promptText } as TextContent] : []),
+                    imageContent
+                ]
+                : promptText
         };
 
         const requestMessages = [...messages, newUserMessage];
+        const savedUserMessage: Message = {
+            role: "user",
+            content: promptText || "Изображение"
+        };
 
         setIsLoading(true);
         setApiResponse(null);
@@ -70,7 +102,8 @@ export const useChatApi = () => {
             setApiResponse(extractAnswer(content));
 
             setMessages([
-                ...requestMessages,
+                ...messages,
+                savedUserMessage,
                 { role: "assistant", content }
             ]);
 

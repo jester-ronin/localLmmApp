@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { TextInput, View, Text, StyleSheet, ActivityIndicator, Image, TouchableOpacity, ScrollView } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useChatApi } from "../api/useChatApi";
 import { imageUrl } from "../../utils/imageURL";
 
@@ -8,9 +9,37 @@ const PromptScreen: React.FC = () => {
     const [prompt, setPrompt] = useState<string>("");
     const [finalValue, setFinalValue] = useState<string>("");
     const { apiResponse, isLoading, sendPrompt } = useChatApi();
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     function handleSave() {
         setFinalValue(prompt)
+    }
+
+    async function handlePickImage() {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            base64: true,
+            allowsMultipleSelection: false,
+        });
+
+        if (result.canceled) {
+            return;
+        }
+
+        const asset = result.assets[0];
+
+        if (!asset.base64) {
+            return;
+        }
+
+        const mimeType = asset.mimeType || "image/jpeg";
+        setSelectedImage(`data:${mimeType};base64,${asset.base64}`);
     }
 
     return (
@@ -25,24 +54,34 @@ const PromptScreen: React.FC = () => {
                         style={styles.image}
                     />
                 </View>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Введите запрос"
-                    value={prompt}
-                    onChangeText={setPrompt}
-                />
+                <View style={styles.inputRow}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Введите запрос"
+                        value={prompt}
+                        onChangeText={setPrompt}
+                    />
+                    <TouchableOpacity
+                        style={[styles.imageButton, selectedImage && styles.imageButtonSelected]}
+                        onPress={handlePickImage}
+                        disabled={isLoading}
+                    >
+                        <Text style={styles.imageButtonText}>{selectedImage ? "✓" : "+"}</Text>
+                    </TouchableOpacity>
+                </View>
                 <Text>Вы ввели: {finalValue}</Text>
                 <View style={styles.buttonView}>
                     <TouchableOpacity
                         style={styles.button}
                         onPress={async () => {
-                            const wasSent = await sendPrompt(prompt);
+                            const wasSent = await sendPrompt(prompt, selectedImage);
 
                             if (wasSent) {
                                 handleSave();
+                                setSelectedImage(null);
                             }
                         }}
-                        disabled={isLoading || !prompt.trim()}
+                        disabled={isLoading || (!prompt.trim() && !selectedImage)}
                     >
                         <Text>Отправить запрос</Text>
                     </TouchableOpacity>
@@ -74,14 +113,35 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 25,
     },
+    inputRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10,
+    },
     input: {
+        flex: 1,
         height: 40,
         borderColor: 'gray',
         borderWidth: 0.5,
         paddingHorizontal: 10,
-        marginBottom: 10,
         backgroundColor: "#EDE8D0",
         borderRadius: 10
+    },
+    imageButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#72b6ff",
+    },
+    imageButtonSelected: {
+        backgroundColor: "#58c783",
+    },
+    imageButtonText: {
+        fontSize: 22,
+        lineHeight: 24,
     },
     buttonView: {
         marginTop: 10,
