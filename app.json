@@ -1,7 +1,7 @@
 {
   "name": "my llm app",
   "slug": "my-app",
-  "icon": "./utils/red-sky.jpg",
+  "icon": "./utils/aiIcon.png",
   "android": {
     "package": "com.jester_ronin.myapp"
   },
