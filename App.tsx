@@ -1,37 +1,46 @@
-import { StyleSheet, StatusBar } from "react-native";
+import { useState } from "react";
+import { StatusBar, StyleSheet, Text, View } from "react-native";
+import AnimatedGradientBackground from "./components/AnimatedGradientBackground/AnimatedGradientBackground";
 import PromptScreen from "./components/PromptScreen/PromptScreen";
-import { useAutoGradientColor } from "./components/GetGradientColor/useAutoGradientColor";
-import { imageUrl } from "./utils/imageURL";
-import { LinearGradient } from "expo-linear-gradient";
+import ThemePicker, {
+  DEFAULT_GRADIENT_THEME,
+  type GradientTheme,
+} from "./components/ThemePicker/ThemePicker";
+
+const statusBarTop = StatusBar.currentHeight ?? 0;
 
 export default function App() {
-  const { gradientColors } = useAutoGradientColor(imageUrl);
+  const [selectedTheme, setSelectedTheme] = useState<GradientTheme>(DEFAULT_GRADIENT_THEME);
 
   return (
-    <LinearGradient
-      style={styles.gradient}
-      colors={gradientColors}
-    >
-      <PromptScreen />
-    </LinearGradient>
-
+    <AnimatedGradientBackground theme={selectedTheme}>
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: selectedTheme.titleColor }]}>
+          Local Language Model
+        </Text>
+        <PromptScreen />
+      </View>
+      <ThemePicker
+        selectedTheme={selectedTheme}
+        topOffset={statusBarTop + 12}
+        onSelectTheme={setSelectedTheme}
+      />
+    </AnimatedGradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
-    padding: 20,
+    paddingTop: statusBarTop,
   },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    marginBottom: 10,
+  title: {
+    position: "absolute",
+    top: statusBarTop + 18,
+    left: 20,
+    zIndex: 9,
+    maxWidth: "72%",
+    fontSize: 26,
+    fontWeight: "800",
   },
-  gradient: {
-    flex: 1,
-    paddingTop: StatusBar.currentHeight ?? 0,
-  }
 });

@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { TextInput, View, Text, StyleSheet, ActivityIndicator, Image, TouchableOpacity, ScrollView } from "react-native";
+import {
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useChatApi } from "../api/useChatApi";
-import { imageSource } from "../../utils/imageURL";
 import { compressImageToBase64 } from "../../utils/compressImage";
-
 
 const PromptScreen: React.FC = () => {
     const [prompt, setPrompt] = useState<string>("");
@@ -12,12 +19,23 @@ const PromptScreen: React.FC = () => {
     const { apiResponse, isLoading, sendPrompt } = useChatApi();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-    function handleSave(value: string) {
-        setFinalValue(value)
-    }
-
     function handleRemoveImage() {
         setSelectedImage(null);
+    }
+
+    async function handleSendPrompt() {
+        const imageToSend = selectedImage;
+        const wasSent = await sendPrompt(prompt, imageToSend);
+
+        if (!wasSent) {
+            return;
+        }
+
+        setFinalValue(prompt.trim() || "Изображение");
+
+        if (imageToSend) {
+            setSelectedImage(null);
+        }
     }
 
     async function handlePickImage() {
@@ -37,6 +55,11 @@ const PromptScreen: React.FC = () => {
         }
 
         const asset = result.assets[0];
+
+        if (!asset) {
+            return;
+        }
+
         const compressedImage = await compressImageToBase64(asset.uri);
 
         if (!compressedImage) {
@@ -46,83 +69,67 @@ const PromptScreen: React.FC = () => {
         setSelectedImage(compressedImage);
     }
 
+    const canSend = !isLoading && (Boolean(prompt.trim()) || selectedImage !== null);
+
     return (
         <ScrollView
             style={styles.screen}
             contentContainerStyle={styles.content}
         >
-            <View>
-                <View style={styles.imageContainer}>
+            <View style={styles.inputRow}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Введите запрос"
+                    value={prompt}
+                    onChangeText={setPrompt}
+                />
+                <TouchableOpacity
+                    style={[styles.imageButton, selectedImage && styles.imageButtonSelected]}
+                    onPress={handlePickImage}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.imageButtonText}>{selectedImage ? "✓" : "+"}</Text>
+                </TouchableOpacity>
+            </View>
+            {selectedImage && (
+                <View style={styles.selectedImagePreviewContainer}>
                     <Image
-                        source={imageSource}
-                        style={styles.image}
-                    />
-                </View>
-                <View style={styles.inputRow}>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Введите запрос"
-                        value={prompt}
-                        onChangeText={setPrompt}
+                        source={{ uri: selectedImage }}
+                        style={styles.selectedImagePreview}
                     />
                     <TouchableOpacity
-                        style={[styles.imageButton, selectedImage && styles.imageButtonSelected]}
-                        onPress={handlePickImage}
+                        style={styles.removeImageButton}
+                        onPress={handleRemoveImage}
                         disabled={isLoading}
                     >
-                        <Text style={styles.imageButtonText}>{selectedImage ? "✓" : "+"}</Text>
+                        <Text style={styles.removeImageButtonText}>×</Text>
                     </TouchableOpacity>
                 </View>
-                {selectedImage && (
-                    <View style={styles.selectedImagePreviewContainer}>
-                        <Image
-                            source={{ uri: selectedImage }}
-                            style={styles.selectedImagePreview}
-                        />
-                        <TouchableOpacity
-                            style={styles.removeImageButton}
-                            onPress={handleRemoveImage}
-                            disabled={isLoading}
-                        >
-                            <Text style={styles.removeImageButtonText}>×</Text>
-                        </TouchableOpacity>
+            )}
+            <Text>Вы ввели: {finalValue}</Text>
+            <View style={styles.buttonView}>
+                <TouchableOpacity
+                    style={[styles.button, !canSend && styles.buttonDisabled]}
+                    onPress={handleSendPrompt}
+                    disabled={!canSend}
+                >
+                    <Text>Отправить запрос</Text>
+                </TouchableOpacity>
+                {isLoading && (
+                    <View>
+                        <Text style={styles.textSending}>Отправляем...</Text>
+                        <ActivityIndicator size="large" color="#72b6ff" />
                     </View>
                 )}
-                <Text>{"\u0412\u044b \u0432\u0432\u0435\u043b\u0438"}: {finalValue}</Text>
-                <View style={styles.buttonView}>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={async () => {
-                            const imageToSend = selectedImage;
-                            const wasSent = await sendPrompt(prompt, imageToSend);
-
-                            if (wasSent) {
-                                handleSave(prompt.trim() || "Изображение");
-                            }
-
-                            if (imageToSend) {
-                                setSelectedImage(null);
-                            }
-                        }}
-                        disabled={isLoading || (!prompt.trim() && !selectedImage)}
-                    >
-                        <Text>Отправить запрос</Text>
-                    </TouchableOpacity>
-                    {isLoading && (
-                        <View>
-                            <Text style={styles.textSending}>Отправляем...</Text>
-                            <ActivityIndicator size="large" color="#72b6ff" />
-                        </View>
-                    )}
-                </View>
-                <View style={apiResponse ? styles.responseView : styles.responseViewEmpty}>
-                    {apiResponse && <Text style={styles.responseText}>Ответ сервера: {apiResponse}
-                    </Text>}
-                </View>
             </View>
+            {apiResponse && (
+                <View style={styles.responseView}>
+                    <Text style={styles.responseText}>Ответ сервера: {apiResponse}</Text>
+                </View>
+            )}
         </ScrollView>
-    )
-}
+    );
+};
 
 export default PromptScreen;
 
@@ -134,6 +141,7 @@ const styles = StyleSheet.create({
     content: {
         flexGrow: 1,
         padding: 20,
+        paddingTop: 76,
         paddingBottom: 25,
     },
     inputRow: {
@@ -145,12 +153,12 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         height: 40,
-        borderColor: 'gray',
+        borderColor: "gray",
         borderWidth: 0.5,
         paddingHorizontal: 10,
         backgroundColor: "#EDE8D0",
         borderRadius: 10,
-        color: "black"
+        color: "black",
     },
     imageButton: {
         width: 40,
@@ -200,35 +208,25 @@ const styles = StyleSheet.create({
     responseView: {
         marginTop: 20,
         borderWidth: 4,
-        borderStyle: 'dashed',
+        borderStyle: "dashed",
         backgroundColor: "#EDE8D0",
     },
-    responseViewEmpty: {
-        marginTop: 20,
-    },
     button: {
-        backgroundColor: '#72b6ff',
+        backgroundColor: "#72b6ff",
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 8,
-        alignItems: 'center',
+        alignItems: "center",
         elevation: 3,
+    },
+    buttonDisabled: {
+        opacity: 0.68,
     },
     textSending: {
         marginTop: 10,
-        alignItems: 'center',
+        alignItems: "center",
     },
     responseText: {
-        padding: 20
+        padding: 20,
     },
-    image: {
-        width: 250,
-        height: 250,
-    },
-    imageContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 70
-    },
-
 });
